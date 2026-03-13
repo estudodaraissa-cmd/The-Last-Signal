@@ -396,11 +396,11 @@ function showResult() {
   const pct = score / clues.length;
   let emoji, title, rank, story, desc;
   if (pct >= 0.9) {
-    emoji = "🏅"; title = "Master Detective"; rank = "B1 · Ready for B2";
+    emoji = "🏅"; title = "Master Detective"; rank = "The results were sent to your teacher";
     story = `Every clue confirmed. Every witness trusted you, ${playerName}. The case is closed — perfectly.`;
-    desc = "Your English is confident and accurate at A2/B1 level.";
+    desc = "Your English is confident and accurate.";
   } else {
-    emoji = "🔍"; title = "Sharp Detective"; rank = "Solid A2/B1";
+    emoji = "🔍"; title = "Sharp Detective"; rank = "The results were sent to your teacher";
     story = `The case is solved, ${playerName}. Not every lead worked out — but you got there.`;
     desc = "Strong foundations! Keep practicing to sharpen your skills.";
   }

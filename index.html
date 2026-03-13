@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Last Signal</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #090c12; --surface: #0f1420; --card: #131825; --border: rgba(255,255,255,0.06);
+  --amber: #f5a623; --amber-dim: rgba(245,166,35,0.15); --blue: #3b82f6; --blue-dim: rgba(59,130,246,0.12);
+  --text: #e2e8f0; --muted: #64748b; --correct: #10b981; --correct-bg: rgba(16,185,129,0.08);
+  --wrong: #ef4444; --wrong-bg: rgba(239,68,68,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; overflow-x: hidden; line-height: 1.5; }
+body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; }
+.screen { display: none; min-height: 100vh; padding: 40px 20px; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+#intro-screen { justify-content: center; text-align: center; }
+.logo-v { font-family: 'Instrument Serif', serif; font-size: 80px; font-style: italic; line-height: 0.8; margin-bottom: 30px; background: linear-gradient(to bottom, #fff, var(--muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.terminal-card { background: var(--surface); border: 1px solid var(--border); padding: 30px; max-width: 500px; width: 100%; border-radius: 4px; }
+input { width: 100%; background: var(--bg); border: 1px solid var(--border); padding: 15px; color: white; font-family: 'Syne', sans-serif; margin-bottom: 20px; outline: none; }
+.btn-primary { background: var(--amber); color: #000; border: none; padding: 16px 32px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.3s; }
+#case-screen { padding-top: 60px; max-width: 900px; margin: 0 auto; }
+.clue-counter { font-size: 12px; color: var(--amber); margin-bottom: 10px; font-weight: 700; letter-spacing: 2px; }
+.story-box { background: var(--card); border: 1px solid var(--border); padding: 40px; margin-bottom: 30px; position: relative; width: 100%; }
+.location-tag { color: var(--muted); font-size: 11px; text-transform: uppercase; margin-bottom: 15px; display: block; }
+.clue-text { font-family: 'Instrument Serif', serif; font-size: 32px; font-style: italic; margin-bottom: 20px; line-height: 1.2; }
+.question-text { font-weight: 600; color: var(--amber); margin-bottom: 20px; }
+.options-grid { display: grid; gap: 12px; width: 100%; }
+.opt { background: var(--surface); border: 1px solid var(--border); padding: 20px; cursor: pointer; text-align: left; color: var(--text); font-family: 'Syne', sans-serif; display: flex; align-items: center; gap: 15px; }
+.opt.correct { border-color: var(--correct); background: var(--correct-bg); }
+.opt.wrong { border-color: var(--wrong); background: var(--wrong-bg); }
+.feedback { margin-top: 20px; padding: 25px; border-radius: 4px; display: none; width: 100%; border-left: 4px solid var(--amber); background: var(--surface); }
+.feedback.visible { display: block; }
+.next-btn { margin-top: 30px; display: none; background: white; color: black; padding: 15px 40px; font-weight: 700; border: none; cursor: pointer; }
+.next-btn.visible { display: block; }
+#result-screen { max-width: 800px; margin: 0 auto; }
+.res-header { text-align: center; margin-bottom: 50px; }
+.res-emoji { font-size: 60px; margin-bottom: 10px; }
+.res-rank { color: var(--amber); font-weight: 800; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; }
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; width: 100%; margin-top: 40px; }
+.sk-card { background: var(--card); padding: 20px; border: 1px solid var(--border); }
+.s-pips { display: flex; gap: 8px; margin: 20px 0; }
+.s-pip { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid var(--border); }
+.s-pip.hit { background: var(--correct-bg); color: var(--correct); border-color: var(--correct); }
+.s-pip.miss { background: var(--wrong-bg); color: var(--wrong); border-color: var(--wrong); }
+</style>
+</head>
+<body>
+
+<div id="intro-screen" class="screen active">
+  <div class="logo-v">The Last<br>Signal</div>
+  <div class="terminal-card">
+    <p style="margin-bottom: 25px; color: var(--muted); font-size: 14px;">"Detective, we've recovered the encrypted drive from the harbor. We need your linguistic expertise to reconstruct the final timeline before the signal went dark."</p>
+    <input type="text" id="playerName" placeholder="ENTER YOUR NAME...">
+    <button class="btn-primary" onclick="startGame()">Access Drive</button>
+  </div>
+</div>
+
+<div id="case-screen" class="screen">
+  <div class="clue-counter">RECONSTRUCTION: <span id="q-idx">1</span>/10</div>
+  <div class="story-box">
+    <span class="location-tag" id="q-loc"></span>
+    <div class="clue-text" id="q-txt"></div>
+    <div class="question-text" id="q-ask"></div>
+  </div>
+  <div class="options-grid" id="q-opts"></div>
+  <div id="q-fb" class="feedback"></div>
+  <button id="next-b" class="next-btn" onclick="nextClue()">Next Clue →</button>
+</div>
+
+<div id="result-screen" class="screen">
+  <div class="res-header">
+    <div class="res-emoji" id="res-emoji"></div>
+    <div class="res-rank" id="res-rank"></div>
+    <h1 id="res-title" style="font-size: 48px; margin: 10px 0;"></h1>
+    <div class="s-pips" id="score-row"></div>
+  </div>
+  <div style="background: var(--card); padding: 40px; border: 1px solid var(--border); width: 100%;">
+    <p id="res-story" style="font-family: 'Instrument Serif'; font-size: 24px; font-style: italic; margin-bottom: 20px;"></p>
+    <p id="res-desc" style="color: var(--muted); font-size: 16px; line-height: 1.6;"></p>
+  </div>
+  <div class="skills-grid" id="skills-grid"></div>
+  <button class="btn-primary" style="margin-top: 40px;" onclick="location.reload()">Reset Investigation</button>
+</div>
+
+<script>
+const clues = [
+  {
+    loc: "Downtown — 11:42 PM",
+    txt: "The rain was heavy, ______ the detective managed to see the figure crossing the street.",
+    ask: "Choose the correct connector to show contrast:",
+    opts: [
+      { t: "so", c: false, r: "The detective felt a sudden rush to follow, but the 'so' logic made the sequence of events feel forced. You lost the trail in the heavy rain." },
+      { t: "but", c: true, r: "Perfect contrast. The detective squinted through the downpour and kept the figure in sight. The trail stays warm." },
+      { t: "because", c: false, r: "The sentence collapsed. The rain wasn't the reason he saw the figure. You're left standing in the dark, confused." },
+      { t: "then", c: false, r: "A simple timeline, but it lacks the connection needed to explain the difficulty of the scene. The signal flickers." }
+    ]
+  },
+  {
+    loc: "Police Archive — Day 2",
+    txt: "While I ______ for the folder, I found a strange note hidden in the desk.",
+    ask: "Choose the correct tense for an ongoing past action:",
+    opts: [
+      { t: "look", c: false, r: "The timeline feels fragmented. Present and past are clashing in your notes, making the report unreadable." },
+      { t: "was looking", c: true, r: "The background action is clear. As you were searching, the note appeared. A classic discovery." },
+      { t: "have looked", c: false, r: "The grammar doesn't fit the 'while' structure. The archive remains a mess of mismatched tenses." },
+      { t: "am looking", c: false, r: "You're mixing up now and then. The Chief looks at your report with a raised eyebrow." }
+    ]
+  },
+  {
+    loc: "Interrogation Room",
+    txt: "The suspect was silent. The detective said: 'Would you mind ______ the bag?'",
+    ask: "Choose the most polite and grammatically correct form:",
+    opts: [
+      { t: "open", c: false, r: "Too direct. The suspect takes offense at the broken structure and calls their lawyer. Investigation stalled." },
+      { t: "to open", c: false, r: "A common mistake, but the suspect notices the slip. The tension in the room remains high." },
+      { t: "opening", c: true, r: "The suspect sighs but complies. Politeness and correct grammar can open doors—and bags." },
+      { t: "opened", c: false, r: "The past tense here confuses everyone. The suspect just stares at you in silence." }
+    ]
+  },
+  {
+    loc: "The Harbor",
+    txt: "I ______ here for three hours and I haven't seen anyone yet.",
+    ask: "Choose the tense for an action that started and continues:",
+    opts: [
+      { t: "wait", c: false, r: "The statement feels unfinished. The dock worker you're talking to doesn't seem to believe you." },
+      { t: "was waiting", c: false, r: "This implies you finished waiting, but you're still there. The logic of the signal is breaking down." },
+      { t: "have been waiting", c: true, r: "Clear and precise. The duration of your stakeout is communicated perfectly. The contact finally arrives." },
+      { t: "am waiting", c: false, r: "It lacks the connection to the 'three hours' duration. The harbor feels colder than before." }
+    ]
+  },
+  {
+    loc: "The Café",
+    txt: "In my opinion, the witness ______ lying. Her eyes were moving too fast.",
+    ask: "State the current opinion correctly:",
+    opts: [
+      { t: "is", c: true, r: "Simple and direct. Your intuition as a detective is backed by a solid present tense statement." },
+      { t: "are", c: false, r: "A plural verb for a singular witness? The logic of the case is slipping through your fingers." },
+      { t: "be", c: false, r: "The grammar is too broken for a formal report. The Chief asks for a rewrite." },
+      { t: "were", c: false, r: "You're talking about a present opinion, but using the past. The timeline of your thoughts is messy." }
+    ]
+  },
+  {
+    loc: "The Station",
+    txt: "The Chief told me: 'You ______ talk to the landlord again. He's hiding something.'",
+    ask: "Give the strongest advice:",
+    opts: [
+      { t: "might", c: false, r: "Too weak. The landlord ignores your visit, and a key piece of evidence is lost forever." },
+      { t: "should", c: true, r: "Clear advice. You head back to the apartment and find the hidden compartment behind the wallpaper." },
+      { t: "could", c: false, r: "A suggestion, but not a priority. You chose to go home instead, missing a vital clue." },
+      { t: "will", c: false, r: "This is a prediction, not advice. The Chief looks at you, confused by your choice of words." }
+    ]
+  },
+  {
+    loc: "Abandoned Warehouse",
+    txt: "The lights were off. ______, I could hear a faint signal coming from the basement.",
+    ask: "Connect the ideas of darkness and sound:",
+    opts: [
+      { t: "However", c: true, r: "Perfect contrast. The darkness didn't stop you from hearing the clue. You move toward the stairs." },
+      { t: "Therefore", c: false, r: "Wait, the lights being off wasn't the REASON you heard the signal. The logic is reversed." },
+      { t: "Moreover", c: false, r: "Adding information is fine, but this scene needed a contrast to show the difficulty of the search." },
+      { t: "So", c: false, r: "The causal link is weak. You trip over a crate in the dark because the connection failed." }
+    ]
+  },
+  {
+    loc: "Crime Lab",
+    txt: "The scientist said that the sample ______ contaminated before it arrived.",
+    ask: "How do you report this past information?",
+    opts: [
+      { t: "is", c: false, r: "The reporting tense doesn't match the timeline. The lab results are now statistically invalid." },
+      { t: "has been", c: false, r: "Close, but in reported speech, we need to move further back in time. The signal is still distorted." },
+      { t: "had been", c: true, r: "Perfect. The 'backshift' in reported speech shows exactly when the contamination happened. You find the culprit." },
+      { t: "was being", c: false, r: "This implies a continuous action that doesn't fit the context. The data is corrupted." }
+    ]
+  },
+  {
+    loc: "The Library",
+    txt: "If there is no record of the call, it ______ that the signal was never sent.",
+    ask: "Make a strong deduction:",
+    opts: [
+      { t: "must mean", c: true, r: "Strong logical deduction. You've narrowed down the suspects by eliminating the impossible." },
+      { t: "can mean", c: false, r: "Too much uncertainty. The suspect slips away while you're still considering possibilities." },
+      { t: "maybe mean", c: false, r: "Broken grammar. 'Maybe' isn't a modal verb. The investigation loses its professional edge." },
+      { t: "should mean", c: false, r: "You're expecting a result instead of making a deduction. The logic doesn't hold up in court." }
+    ]
+  },
+  {
+    loc: "Final Scene",
+    txt: "If you ______ the signal earlier, we would have caught them.",
+    ask: "Talk about a past regret (Third Conditional):",
+    opts: [
+      { t: "trace", c: false, r: "The past regret is lost in a present tense mistake. They got away across the border." },
+      { t: "traced", c: false, r: "A common slip, but the third conditional needs a 'had' to function. The signal goes cold." },
+      { t: "had traced", c: true, r: "The regret is clear, and the grammar is perfect. You understand exactly what went wrong. The signal is restored." },
+      { t: "have traced", c: false, r: "Mixing up your auxiliary verbs. The suspect's car disappears into the night fog." }
+    ]
+  }
+];
+
+let current = 0, score = 0, playerName = "", answers = [];
+
+function startGame() {
+  playerName = document.getElementById('playerName').value;
+  if(!playerName) { alert("Please enter your name!"); return; }
+  document.getElementById('intro-screen').classList.remove('active');
+  document.getElementById('case-screen').classList.add('active');
+  showClue();
+}
+
+function showClue() {
+  const q = clues[current];
+  document.getElementById('q-idx').textContent = current + 1;
+  document.getElementById('q-loc').textContent = q.loc;
+  document.getElementById('q-txt').textContent = q.txt;
+  document.getElementById('q-ask').textContent = q.ask;
+  const container = document.getElementById('q-opts');
+  container.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = `<span>${opt.t}</span>`;
+    b.onclick = () => pick(i, opt.c);
+    container.appendChild(b);
+  });
+  document.getElementById('q-fb').classList.remove('visible');
+  document.getElementById('next-b').classList.remove('visible');
+}
+
+function pick(idx, isCorrect) {
+  const q = clues[current];
+  const btns = document.querySelectorAll('.opt');
+  btns.forEach(b => b.disabled = true);
+  const fb = document.getElementById('q-fb');
+  fb.textContent = q.opts[idx].r;
+  fb.classList.add('visible');
+  if(isCorrect) {
+    btns[idx].classList.add('correct');
+    score++; answers.push(true);
+    fb.style.borderLeftColor = "var(--correct)";
+  } else {
+    btns[idx].classList.add('wrong');
+    answers.push(false);
+    fb.style.borderLeftColor = "var(--wrong)";
+  }
+  document.getElementById('next-b').classList.add('visible');
+}
+
+function nextClue() {
+  current++;
+  if(current < clues.length) showClue(); else showResult();
+}
+
+function showResult() {
+  document.getElementById('case-screen').classList.remove('active');
+  document.getElementById('result-screen').classList.add('active');
+  const pct = score / clues.length;
+  let emoji, title, rank, story, desc;
+  if(pct >= 0.9) {
+    emoji = "💎"; title = "Elite Detective"; rank = "B2+ Advanced";
+    story = `The signal is clear. Every piece of the puzzle fits. You've solved the unsolvable, ${playerName}.`;
+    desc = "Your command of complex structures, reported speech, and conditionals is exceptional. You're operating at a high professional level.";
+  } else if(pct >= 0.7) {
+    emoji = "🕵️"; title = "Senior Inspector"; rank = "B1/B2 Intermediate";
+    story = `Most of the signal is restored. You've found the truth hidden in the static, ${playerName}.`;
+    desc = "Great job! You have a solid grasp of mixed tenses and connectors. A few more nuances in complex grammar and you'll be at the top.";
+  } else if(pct >= 0.4) {
+    emoji = "🔍"; title = "Field Agent"; rank = "A2/B1 Pre-Intermediate";
+    story = `The investigation is ongoing. You've found some key leads, ${playerName}, but the full picture is still blurry.`;
+    desc = "You're on the right track. Focus on consistent verb tenses and more precise vocabulary to strengthen your communication.";
+  } else {
+    emoji = "🌧️"; title = "New Detective"; rank = "A2 Developing";
+    story = `The rain came. The leads went cold. But you're still here, ${playerName} — and every great detective starts with a difficult first case.`;
+    desc = "Keep going! Focus on connecting ideas, using the right tenses, and building complete sentences. Every word you learn is a new clue.";
+  }
+
+  const URL_PLANILHA = "https://script.google.com/macros/s/AKfycbzj6MiYtA-P0sbAqafasdi9y9RmCkYTzXGUnrLqEWRtUupj2p1gPVoYOKc_Dasr_3dK/exec";
+  fetch(URL_PLANILHA, {
+    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: playerName, score: score, answers: answers.map(a => a ? 1 : 0) })
+  });
+
+  document.getElementById('res-emoji').textContent = emoji;
+  document.getElementById('res-title').textContent = title;
+  document.getElementById('res-rank').textContent = rank;
+  document.getElementById('res-story').textContent = story;
+  document.getElementById('res-desc').textContent = desc;
+  document.getElementById('score-row').innerHTML = answers.map((h,i) => `<div class="s-pip ${h?'hit':'miss'}">${h?'✓':'✗'}</div>`).join('');
+  const skills = ["Connectors","Mixed Tenses","Polite Requests","Present Perfect","Opinions","Giving Advice","Contrast","Reported Speech","Inference","Conditionals"];
+  document.getElementById('skills-grid').innerHTML = answers.map((h,i) => `
+    <div class="sk-card">
+      <div class="sk-num">Clue ${i+1}</div>
+      <div class="sk-name">${skills[i]}</div>
+      <div class="sk-status ${h?'ok':'no'}">${h ? '✓ Solved' : '✗ Review this'}</div>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>

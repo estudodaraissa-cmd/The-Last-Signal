@@ -386,7 +386,7 @@ function showResult() {
   rs.classList.add('active');
 
   // ENVIO PARA A PLANILHA (ADICIONADO)
-  const URL_PLANILHA = "https://script.google.com/macros/s/AKfycbyYk6C0qYLPZK-VtkrJBFvxNiOQQwbUlhSsMKT6fecbQXOE2XFo-Kv8upqMgzEIS6WAiw/exec";
+  const URL_PLANILHA = "https://script.google.com/macros/s/AKfycbxbcY-5RX76-fKFLXpMakH4x2i6-qD0knb6zBWa17hBLtM_R_Y8VS69S6aLeXeJ2rHyqA/exec";
   fetch(URL_PLANILHA, {
     method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: playerName, score: score, answers: answers.map(a => a ? 1 : 0) })

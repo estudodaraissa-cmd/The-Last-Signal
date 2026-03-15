@@ -138,6 +138,7 @@ body::after { content: ''; position: fixed; inset: 0; background: repeating-line
   <div class="score-row" id="score-row"></div>
   <p class="result-desc" id="res-desc"></p>
   <div class="skills-grid" id="skills-grid"></div>
+  <div id="teacher-link-area" style="display:none;max-width:460px;margin:0 auto 24px;"></div>
   <button class="btn-restart" onclick="restart()">↩ Reopen the case</button>
 </div>
 
@@ -385,14 +386,46 @@ function showResult() {
   const rs = document.getElementById('result-screen');
   rs.classList.add('active');
 
-  // ENVIO PARA A PLANILHA (ADICIONADO)
-  const URL_PLANILHA = "https://script.google.com/macros/s/AKfycbxbcY-5RX76-fKFLXpMakH4x2i6-qD0knb6zBWa17hBLtM_R_Y8VS69S6aLeXeJ2rHyqA/exec";
+  // Envia para a planilha
+  const URL_PLANILHA = "https://script.google.com/macros/s/AKfycbxqOsBGRqgZ_HQERgaXaT1jBUJi-ChHep7d4HaLv84AlkcccZinXrCM9CVs6_qy4cBdgg/exec";
   fetch(URL_PLANILHA, {
     method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: playerName, score: score, answers: answers.map(a => a ? 1 : 0) })
+    body: JSON.stringify({
+      _template: "jogo_a2b1",
+      tipo: "a2b1",
+      name: playerName,
+      score: score,
+      answers: answers.map(a => a ? 1 : 0),
+      data: new Date().toISOString().slice(0,10)
+    })
   });
 
-  // RESTANTE DOS RESULTADOS ORIGINAIS
+  // Gera o link para a professora abrir o Template 2 já preenchido
+  const params = new URLSearchParams({
+    aluno: playerName,
+    tipo: "a2b1",
+    score: score,
+    respostas: answers.map(a => a ? 1 : 0).join(","),
+    data: new Date().toISOString().slice(0,10)
+  });
+  const TEMPLATE2_URL = "COLE_AQUI_A_URL_DO_TEMPLATE2_NO_GITHUB";
+  const linkProfessora = `${TEMPLATE2_URL}?${params.toString()}`;
+
+  const linkDiv = document.getElementById('teacher-link-area');
+  if (linkDiv) {
+    linkDiv.innerHTML = `
+      <div style="padding:16px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);text-align:center;">
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(226,232,240,0.5);margin-bottom:10px;font-family:monospace;">📋 Link para a professora</div>
+        <a href="${linkProfessora}" target="_blank"
+           style="display:inline-block;background:#f5a623;color:#090c12;padding:12px 24px;font-family:monospace;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;">
+          Abrir Template de Análise →
+        </a>
+        <div style="margin-top:10px;font-size:10px;color:rgba(226,232,240,0.3);font-family:monospace;">O template já vai estar preenchido com seus resultados</div>
+      </div>`;
+    linkDiv.style.display = 'block';
+  }
+
+  // Resultados visuais
   const pct = score / clues.length;
   let emoji, title, rank, story, desc;
   if (pct >= 0.9) {
